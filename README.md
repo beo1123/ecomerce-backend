@@ -1,7 +1,7 @@
 
 # E-Commerce Backend
 
-Welcome to the E-Commerce Backend, an advanced server-side application that provides a robust foundation for building a comprehensive e-commerce platform. This backend system is designed to facilitate seamless online shopping experiences, from product browsing to checkout and order fulfillment.
+Welcome to the E-Commerce Backend, an advanced server-side application that provides a robust foundation for building a comprehensive e-commerce platform. This backend system is designed to facilitate seamless online shopping experiences, from product browsing to checkout and order fulfillment. aa
 
 
 ## Project Overview
