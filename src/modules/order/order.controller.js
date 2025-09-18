@@ -61,7 +61,7 @@ const updateOrder = catchAsyncError(async (req, res, next) => {
   const { isPaid, isDelivered } = req.body;
 
   const order = await orderModel.findById(orderId);
-  if (!order) return next(new AppError("Order not found 1", 404));
+  if (!order) return next(new AppError("Order not found", 404));
 
   if (typeof isPaid === "boolean") {
     order.isPaid = isPaid;
