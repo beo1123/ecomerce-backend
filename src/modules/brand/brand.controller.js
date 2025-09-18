@@ -6,7 +6,7 @@ import { deleteOne } from "../../handlers/factor.js";
 import { ApiFeatures } from "../../utils/ApiFeatures.js";
 
 const addBrand = catchAsyncError(async (req, res, next) => {
-  req.body.slug = slugify(req.body.name);
+  req.body.slug = slugify(req.body.name, { lower: true });
   const addBrand = new brandModel(req.body);
   await addBrand.save();
 
@@ -28,7 +28,7 @@ const getAllBrands = catchAsyncError(async (req, res, next) => {
 
 const updateBrand = catchAsyncError(async (req, res, next) => {
   const { id } = req.params;
-  req.body.slug = slugify(req.body.name);
+  req.body.slug = slugify(req.body.name, { lower: true });
   const updateBrand = await brandModel.findByIdAndUpdate(id, req.body, {
     new: true,
   });

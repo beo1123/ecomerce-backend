@@ -14,14 +14,17 @@ function calcTotalPrice(cart) {
 }
 
 const addProductToCart = catchAsyncError(async (req, res, next) => {
-  let productId = await productModel
-    .findById(req.body.productId)
-    .select("price");
-  if (!productId) return next(new AppError("Product was not found", 404));
-  req.body.price = productId.price;
-  let isCartExist = await cartModel.findOne({
-    userId: req.user._id,
-  });
+  let product = await productModel.findById(req.body.productId).select("price colors");
+  if (!product) return next(new AppError("Product was not found", 404));
+
+  // check color có hợp lệ không
+  if (!product.colors.includes(req.body.color)) {
+    return next(new AppError("Selected color is not available for this product", 400));
+  }
+
+  req.body.price = product.price;
+
+  let isCartExist = await cartModel.findOne({ userId: req.user._id });
 
   if (!isCartExist) {
     let result = new cartModel({
@@ -32,16 +35,20 @@ const addProductToCart = catchAsyncError(async (req, res, next) => {
     await result.save();
     return res.status(201).json({ message: "success", result });
   }
-  console.log(isCartExist.cartItem);
 
-  let item = isCartExist.cartItem.find((element) => {
-    return element.productId == req.body.productId;
-  });
+  // tìm item trùng productId + color
+  let item = isCartExist.cartItem.find(
+    (element) =>
+      String(element.productId) === String(req.body.productId) &&
+      element.color === req.body.color
+  );
+
   if (item) {
     item.quantity += req.body.quantity || 1;
   } else {
     isCartExist.cartItem.push(req.body);
   }
+
   calcTotalPrice(isCartExist);
 
   if (isCartExist.discount) {
@@ -49,9 +56,11 @@ const addProductToCart = catchAsyncError(async (req, res, next) => {
       isCartExist.totalPrice -
       (isCartExist.totalPrice * isCartExist.discount) / 100;
   }
+
   await isCartExist.save();
   res.status(201).json({ message: "success", result: isCartExist });
 });
+
 
 const removeProductFromCart = catchAsyncError(async (req, res, next) => {
   let result = await cartModel.findOneAndUpdate(
@@ -108,11 +117,11 @@ const applyCoupon = catchAsyncError(async (req, res, next) => {
   res.status(201).json({ message: "success", cart });
 });
 
-const getLoggedUserCart = catchAsyncError(async (req,res,next)=>{
+const getLoggedUserCart = catchAsyncError(async (req, res, next) => {
 
-  let cartItems = await cartModel.findOne({userId:req.user._id}).populate('cartItem.productId')
+  let cartItems = await cartModel.findOne({ userId: req.user._id }).populate('cartItem.productId')
 
-  res.status(200).json({message:"success",cart : cartItems})
+  res.status(200).json({ message: "success", cart: cartItems })
 })
 
 export {

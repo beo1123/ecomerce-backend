@@ -1,43 +1,37 @@
-import { Schema,model } from "mongoose";
+import { Schema, model } from "mongoose";
 
-
-const orderSchema = new Schema({
-    userId:{
-        type:Schema.ObjectId,
-        required:true,
-        ref:'user'
-    },
-    cartItems:[
-        {
-            productId:{type:Schema.ObjectId, ref : "product"},
-            quantity:{
-              type:Number,
-              default:1
+const orderSchema = new Schema(
+    {
+        userId: {
+            type: Schema.Types.ObjectId,
+            required: true,
+            ref: "user",
+        },
+        cartItems: [
+            {
+                productId: { type: Schema.Types.ObjectId, ref: "product" },
+                quantity: { type: Number, default: 1 },
+                price: { type: Number, required: true },
+                totalProductDiscount: { type: Number, default: 0 },
             },
-            price:Number,
-            totalProductDiscount:Number
-          }
-    ],
-    shippingAddress:{
-        street:String,
-        city:String,
-        phone:Number
+        ],
+        shippingAddress: {
+            street: String,
+            city: String,
+            phone: Number,
+        },
+        paymentMethod: {
+            type: String,
+            enum: ["card", "cash"],
+            default: "cash",
+        },
+        isPaid: { type: Boolean, default: false },
+        isDelivered: { type: Boolean, default: false },
+        paidAt: Date,
+        deliveredAt: Date,
+        totalOrderPrice: { type: Number, required: true },
     },
-    paymentMethod:{
-        type:String,
-        enum:['card','cash'],
-        default:'cash'
-    },
-    isPaid:{
-        type:Boolean,
-        default:false
-    },
-    isDelivered:{
-        type:Boolean,
-        default:false
-    },
-    paidAt:Date,
-    deliveredAt:Date
-})
+    { timestamps: true }
+);
 
-export const orderModel = model('order',orderSchema)
+export const orderModel = model("order", orderSchema);

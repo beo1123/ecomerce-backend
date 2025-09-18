@@ -6,20 +6,21 @@ const cartSchema = new Schema(
       type: Schema.ObjectId,
       ref: "user",
     },
-    cartItem:[
+    cartItem: [
       {
-        productId:{type:Schema.ObjectId, ref : "product"},
-        quantity:{
-          type:Number,
-          default:1
+        productId: { type: Schema.ObjectId, ref: "product" },
+        quantity: {
+          type: Number,
+          default: 1
         },
-        price:Number,
-        totalProductDiscount:Number
+        color: { type: String, required: true },
+        price: Number,
+        totalProductDiscount: Number
       }
     ],
-    totalPrice:Number,
-    totalPriceAfterDiscount:Number,
-    discount:Number
+    totalPrice: Number,
+    totalPriceAfterDiscount: Number,
+    discount: Number
   },
   {
     timestamps: true,

@@ -9,11 +9,21 @@ const productSchema = new Schema(
       trim: true,
       minLength: [3, "Too Short product Name"],
     },
+
     imgCover: {
       type: String,
     },
     images: {
       type: [String],
+    },
+    colors: {
+      type: [String],
+      default: [],
+    },
+    slug: {
+      type: String,
+      lowercase: true,
+      unique: true,
     },
     descripton: {
       type: String,
@@ -56,7 +66,6 @@ const productSchema = new Schema(
     brand: {
       type: Schema.ObjectId,
       ref: "brand",
-      required: true,
     },
     ratingAvg: {
       type: Number,
@@ -68,20 +77,20 @@ const productSchema = new Schema(
       min: 0,
     },
   },
-  { timestamps: true ,toJSON: { virtuals: true },toObject: { virtuals: true } }
+  { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } }
 );
 
-productSchema.post('init',function(doc){
+productSchema.post('init', function (doc) {
 
-  if(doc.imgCover && doc.images){
+  if (doc.imgCover && doc.images) {
 
     doc.imgCover = `${process.env.BASE_URL}products/${doc.imgCover}`
-    doc.images = doc.images.map((ele)=>{
-     return `${process.env.BASE_URL}products/${ele}`
+    doc.images = doc.images.map((ele) => {
+      return `${process.env.BASE_URL}products/${ele}`
     })
   }
 
-  
+
 })
 
 productSchema.virtual('reviews', {
@@ -90,7 +99,7 @@ productSchema.virtual('reviews', {
   foreignField: 'productId',
 });
 
-productSchema.pre(['find','findOne'],function (){
+productSchema.pre(['find', 'findOne'], function () {
   this.populate('reviews')
 })
 

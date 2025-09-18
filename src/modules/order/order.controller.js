@@ -4,170 +4,82 @@ import { cartModel } from "../../../Database/models/cart.model.js";
 import { productModel } from "../../../Database/models/product.model.js";
 import { orderModel } from "../../../Database/models/order.model.js";
 
-import Stripe from "stripe";
-import { userModel } from "../../../Database/models/user.model.js";
-const stripe = new Stripe(
-  "sk_test_51NV8e0HVbfRYk4SfG3Ul84cabreiXkPbW1xMugwqvU9is2Z2ICEafTtG6NHLIUdFVIjkiRHYmAPKxCLsCpoU2NnN00LVpHcixz"
-);
-
+/**
+ * Tạo đơn hàng COD
+ */
 const createCashOrder = catchAsyncError(async (req, res, next) => {
-  let cart = await cartModel.findById(req.params.id);
+  const cart = await cartModel.findById(req.params.id);
+  if (!cart) return next(new AppError("Cart not found", 404));
 
-  // console.log(cart);
-  let totalOrderPrice = cart.totalPriceAfterDiscount
-    ? cart.totalPriceAfterDiscount
-    : cart.totalPrice;
+  const totalOrderPrice = cart.totalPriceAfterDiscount ?? cart.totalPrice;
 
-  console.log(cart.cartItem);
   const order = new orderModel({
     userId: req.user._id,
-    cartItem: cart.cartItem,
-    totalOrderPrice,
+    cartItems: cart.cartItem,
     shippingAddress: req.body.shippingAddress,
+    paymentMethod: "cash",
+    totalOrderPrice,
   });
 
   await order.save();
 
-  // console.log(order);
-  if (order) {
-    let options = cart.cartItem.map((item) => ({
-      updateOne: {
-        filter: { _id: item.productId },
-        update: { $inc: { quantity: -item.quantity, sold: item.quantity } },
-      },
-    }));
+  // Update số lượng sản phẩm
+  const options = cart.cartItem.map((item) => ({
+    updateOne: {
+      filter: { _id: item.productId },
+      update: { $inc: { quantity: -item.quantity, sold: item.quantity } },
+    },
+  }));
+  await productModel.bulkWrite(options);
 
-    await productModel.bulkWrite(options);
+  await cartModel.findByIdAndDelete(req.params.id);
 
-    await cartModel.findByIdAndDelete(req.params.id);
-
-    return res.status(201).json({ message: "success", order });
-  } else {
-    next(new AppError("Error in cart ID", 404));
-  }
+  res.status(201).json({ message: "Order created successfully", order });
 });
 
-const getSpecificOrder = catchAsyncError(async (req, res, next) => {
-  console.log(req.user._id);
-
-  let order = await orderModel
-    .findOne({ userId: req.user._id })
-    .populate("cartItems.productId");
-
-  res.status(200).json({ message: "success", order });
+/**
+ * Lấy đơn hàng của user hiện tại
+ */
+const getUserOrders = catchAsyncError(async (req, res) => {
+  const orders = await orderModel.find({ userId: req.user._id }).populate("cartItems.productId");
+  res.status(200).json({ message: "Success", orders });
 });
 
-const getAllOrders = catchAsyncError(async (req, res, next) => {
-  let orders = await orderModel.findOne({}).populate("cartItems.productId");
-
-  res.status(200).json({ message: "success", orders });
+/**
+ * Lấy tất cả đơn hàng (dành cho admin)
+ */
+const getAllOrders = catchAsyncError(async (req, res) => {
+  const orders = await orderModel.find({}).populate("cartItems.productId");
+  res.status(200).json({ message: "Success", orders });
 });
 
-const createCheckOutSession = catchAsyncError(async (req, res, next) => {
-  let cart = await cartModel.findById(req.params.id);
-  if(!cart) return next(new AppError("Cart was not found",404))
+/**
+ * Cập nhật trạng thái đơn hàng
+ */
+const updateOrder = catchAsyncError(async (req, res, next) => {
+  const { orderId } = req.params;
+  const { isPaid, isDelivered } = req.body;
 
-  console.log(cart);
+  const order = await orderModel.findById(orderId);
+  if (!order) return next(new AppError("Order not found", 404));
 
-  // console.log(cart);
-  let totalOrderPrice = cart.totalPriceAfterDiscount
-    ? cart.totalPriceAfterDiscount
-    : cart.totalPrice;
-
-  let sessions = await stripe.checkout.sessions.create({
-    line_items: [
-      {
-        price_data: {
-          currency: "egp",
-          unit_amount: totalOrderPrice * 100,
-          product_data: {
-            name: req.user.name,
-          },
-        },
-        quantity: 1,
-      },
-    ],
-    mode: "payment",
-    success_url: "https://github.com/AbdeIkader",
-    cancel_url: "https://www.linkedin.com/in/abdelrahman-abdelkader-259781215/",
-    customer_email: req.user.email,
-    client_reference_id: req.params.id,
-    metadata: req.body.shippingAddress,
-  });
-
-  res.json({ message: "success", sessions });
-});
-
-const createOnlineOrder = catchAsyncError(async (request, response) => {
-  const sig = request.headers["stripe-signature"].toString();
-
-  let event;
-
-  try {
-    event = stripe.webhooks.constructEvent(
-      request.body,
-      sig,
-      "whsec_fcatGuOKvXYUQoz5NWSwH9vaqdWXIWsI"
-    );
-  } catch (err) {
-    return response.status(400).send(`Webhook Error: ${err.message}`);
+  if (typeof isPaid === "boolean") {
+    order.isPaid = isPaid;
+    if (isPaid) order.paidAt = Date.now();
   }
 
-  // Handle the event
-  if (event.type == "checkout.session.completed") {
-    // const checkoutSessionCompleted = event.data.object;
-    card(event.data.object,response)
-
-
-  } else {
-    console.log(`Unhandled event type ${event.type}`);
+  if (typeof isDelivered === "boolean") {
+    order.isDelivered = isDelivered;
+    if (isDelivered) order.deliveredAt = Date.now();
   }
-});
-
-//https://ecommerce-backend-codv.onrender.com/api/v1/orders/checkOut/6536c48750fab46f309bb950
-
-
-async function card (e,res){
-  let cart = await cartModel.findById(e.client_reference_id);
-
-  if(!cart) return next(new AppError("Cart was not found",404))
-
-  let user = await userModel.findOne({email:e.customer_email})
-  const order = new orderModel({
-    userId: user._id,
-    cartItem: cart.cartItem,
-    totalOrderPrice : e.amount_total/100,
-    shippingAddress: e.metadata.shippingAddress,
-    paymentMethod:"card",
-    isPaid:true,
-    paidAt:Date.now()
-  });
 
   await order.save();
-
-  // console.log(order);
-  if (order) {
-    let options = cart.cartItem.map((item) => ({
-      updateOne: {
-        filter: { _id: item.productId },
-        update: { $inc: { quantity: -item.quantity, sold: item.quantity } },
-      },
-    }));
-
-    await productModel.bulkWrite(options);
-
-    await cartModel.findOneAndDelete({userId: user._id});
-
-    return res.status(201).json({ message: "success", order });
-  } else {
-    next(new AppError("Error in cart ID", 404));
-  }
-}
+  res.status(200).json({ message: "Order updated successfully", order });
+});
 
 export {
   createCashOrder,
-  getSpecificOrder,
+  getUserOrders,
   getAllOrders,
-  createCheckOutSession,
-  createOnlineOrder,
+  updateOrder,
 };

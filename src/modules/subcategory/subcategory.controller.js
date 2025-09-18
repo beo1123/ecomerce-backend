@@ -6,7 +6,7 @@ import { deleteOne } from "../../handlers/factor.js";
 import { ApiFeatures } from "../../utils/ApiFeatures.js";
 
 const addSubCategory = catchAsyncError(async (req, res, next) => {
-  req.body.slug = slugify(req.body.name);
+  req.body.slug = slugify(req.body.name, { lower: true });
   const addSubcategory = new subCategoryModel(req.body);
   await addSubcategory.save();
 
@@ -17,7 +17,7 @@ const getAllSubCategories = catchAsyncError(async (req, res, next) => {
   console.log(req.params);
   let filterObj = {};
 
-  
+
   if (req.params.category) {
     filterObj = { category: req.params.category };
   }
@@ -36,7 +36,7 @@ const getAllSubCategories = catchAsyncError(async (req, res, next) => {
 const updateSubCategory = catchAsyncError(async (req, res, next) => {
   const { id } = req.params;
   if (req.body.name) {
-    req.body.slug = slugify(req.body.name);
+    req.body.slug = slugify(req.body.name, { lower: true });
   }
   const updateSubCategory = await subCategoryModel.findByIdAndUpdate(
     id,
@@ -51,10 +51,23 @@ const updateSubCategory = catchAsyncError(async (req, res, next) => {
 
   !updateSubCategory && next(new AppError("subcategory was not found", 404));
 });
+const getSubCategoryBySlug = catchAsyncError(async (req, res, next) => {
+  const { slug } = req.params;
+
+  const subCategory = await subCategoryModel.findOne({ slug }).populate("category");
+
+  if (!subCategory) {
+    return next(new AppError("SubCategory not found", 404));
+  }
+
+  res.status(200).json({ message: "success", subCategory });
+});
+
 
 const deleteSubCategory = deleteOne(subCategoryModel, "subcategory");
 export {
   addSubCategory,
+  getSubCategoryBySlug,
   getAllSubCategories,
   updateSubCategory,
   deleteSubCategory,

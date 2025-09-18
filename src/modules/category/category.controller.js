@@ -8,7 +8,7 @@ import { ApiFeatures } from "../../utils/ApiFeatures.js";
 const addCategory = catchAsyncError(async (req, res, next) => {
   console.log(req.file);
   req.body.Image = req.file.filename;
-  req.body.slug = slugify(req.body.name);
+  req.body.slug = slugify(req.body.name, { lower: true });
   const addcategory = new categoryModel(req.body);
   await addcategory.save();
 
@@ -35,18 +35,27 @@ const getAllCategories = catchAsyncError(async (req, res, next) => {
 });
 
 const updateCategory = catchAsyncError(async (req, res, next) => {
-  const { id } = req.params;
-  const { name } = req.body;
-  req.body.slug = slugify(req.body.name);
-  const updateCategory = await categoryModel.findByIdAndUpdate(id, req.body, {
+  if (req.file) req.body.Image = req.file.filename;
+  if (req.body.name) req.body.slug = slugify(req.body.name, { lower: true });
+
+  const updateCategory = await categoryModel.findByIdAndUpdate(req.params.id, req.body, {
     new: true,
   });
 
-  updateCategory &&
-    res.status(201).json({ message: "success", updateCategory });
+  if (!updateCategory) return next(new AppError("Category not found", 404));
 
-  !updateCategory && next(new AppError("category was not found", 404));
+  res.status(201).json({ message: "success", updateCategory });
 });
 
+
+const getCategoryBySlug = catchAsyncError(async (req, res, next) => {
+  const categoryData = await categoryModel.findOne({ slug: req.params.slug });
+  if (!categoryData) return next(new AppError("Category not found", 404));
+
+  res.status(200).json({ message: "success", category: categoryData });
+});
+
+
+
 const deleteCategory = deleteOne(categoryModel, "category");
-export { addCategory, getAllCategories, updateCategory, deleteCategory };
+export { addCategory, getAllCategories, updateCategory, deleteCategory, getCategoryBySlug };
