@@ -1,15 +1,12 @@
 import slugify from "slugify";
 import { productModel } from "./../../../Database/models/product.model.js";
 import { categoryModel } from "./../../../Database/models/category.model.js";
-import { subCategoryModel } from "./../../../Database/models/subcategory.model.js"
+import { subCategoryModel } from "./../../../Database/models/subcategory.model.js";
 import { catchAsyncError } from "../../utils/catchAsyncError.js";
 import { AppError } from "../../utils/AppError.js";
 import { deleteOne } from "../../handlers/factor.js";
 import { ApiFeatures } from "../../utils/ApiFeatures.js";
 
-/**
- * Helper: safe-normalize colors on server side too (extra safety)
- */
 const normalizeColorsValue = (val) => {
   if (val === undefined || val === null) return undefined;
   if (Array.isArray(val)) return val.map((c) => String(c));
@@ -32,7 +29,6 @@ const normalizeColorsValue = (val) => {
 };
 
 const addProduct = catchAsyncError(async (req, res, next) => {
-  // handle files từ multer
   if (req.files) {
     if (req.files.imgCover && req.files.imgCover[0]) {
       req.body.imgCover = req.files.imgCover[0].filename;
@@ -42,19 +38,14 @@ const addProduct = catchAsyncError(async (req, res, next) => {
     }
   }
 
-  // slug cho title
   if (req.body.title) {
     req.body.slug = slugify(req.body.title, { lower: true });
   }
 
-  // normalize colors
   if (req.body.colors !== undefined) {
     req.body.colors = normalizeColorsValue(req.body.colors);
   }
 
-  /**
-   * ✅ CHECK CATEGORY & SUBCATEGORY
-   */
   if (req.body.category) {
     const category = await categoryModel.findById(req.body.categoryId);
     if (!category) {
@@ -68,7 +59,6 @@ const addProduct = catchAsyncError(async (req, res, next) => {
       return next(new AppError("SubCategory not found", 404));
     }
 
-    // bắt buộc subCategory phải thuộc category đã chọn
     if (
       req.body.categoryId &&
       String(subCategory.category) !== String(req.body.categoryId)
@@ -82,27 +72,38 @@ const addProduct = catchAsyncError(async (req, res, next) => {
     }
   }
 
-  /**
-   * ✅ SAVE PRODUCT
-   */
   const addProduct = new productModel(req.body);
   await addProduct.save();
 
   res.status(201).json({ message: "success", addProduct });
 });
 
-
 const getAllProducts = catchAsyncError(async (req, res, next) => {
   let apiFeature = new ApiFeatures(productModel.find(), req.query)
     .pagination()
     .fields()
     .filteration()
-    .search()
+    .search(["title", "descripton", "colors"]) // Include colors in search
     .sort();
-  const PAGE_NUMBER = apiFeature.queryString.page * 1 || 1;
-  let getAllProducts = await apiFeature.mongooseQuery;
 
-  res.status(201).json({ page: PAGE_NUMBER, message: "success", getAllProducts });
+  await apiFeature.countDocuments();
+
+  const getAllProducts = await apiFeature.mongooseQuery;
+
+  if (getAllProducts.length === 0) {
+    return next(new AppError("No products found", 404));
+  }
+
+  const pagination = apiFeature.getPaginationMetadata();
+
+  res.status(200).json({
+    message: "success",
+    page: pagination.page,
+    limit: pagination.limit,
+    totalPages: pagination.totalPages,
+    totalDocuments: pagination.totalDocuments,
+    getAllProducts,
+  });
 });
 
 const getProductById = catchAsyncError(async (req, res, next) => {
@@ -120,7 +121,6 @@ const getProductBySlug = catchAsyncError(async (req, res, next) => {
 });
 
 const updateProduct = catchAsyncError(async (req, res, next) => {
-  // handle files from multer (if PUT used with multipart)
   if (req.files) {
     if (req.files.imgCover && req.files.imgCover[0]) {
       req.body.imgCover = req.files.imgCover[0].filename;
@@ -132,7 +132,6 @@ const updateProduct = catchAsyncError(async (req, res, next) => {
 
   if (req.body.title) req.body.slug = slugify(req.body.title, { lower: true });
 
-  // normalize colors server-side (extra safety)
   if (req.body.colors !== undefined) {
     req.body.colors = normalizeColorsValue(req.body.colors);
   }

@@ -9,7 +9,6 @@ const productSchema = new Schema(
       trim: true,
       minLength: [3, "Too Short product Name"],
     },
-
     imgCover: {
       type: String,
     },
@@ -63,10 +62,6 @@ const productSchema = new Schema(
       ref: "subcategory",
       required: true,
     },
-    brand: {
-      type: Schema.ObjectId,
-      ref: "brand",
-    },
     ratingAvg: {
       type: Number,
       min: 1,
@@ -81,17 +76,13 @@ const productSchema = new Schema(
 );
 
 productSchema.post('init', function (doc) {
-
   if (doc.imgCover && doc.images) {
-
-    doc.imgCover = `${process.env.BASE_URL}products/${doc.imgCover}`
+    doc.imgCover = `${process.env.BASE_URL}products/${doc.imgCover}`;
     doc.images = doc.images.map((ele) => {
-      return `${process.env.BASE_URL}products/${ele}`
-    })
+      return `${process.env.BASE_URL}products/${ele}`;
+    });
   }
-
-
-})
+});
 
 productSchema.virtual('reviews', {
   ref: 'review',
@@ -100,9 +91,7 @@ productSchema.virtual('reviews', {
 });
 
 productSchema.pre(['find', 'findOne'], function () {
-  this.populate('reviews')
-})
+  this.populate('reviews');
+});
 
 export const productModel = model("product", productSchema);
-
-
