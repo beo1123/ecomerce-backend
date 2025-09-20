@@ -1,8 +1,8 @@
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 import { userModel } from "../../../Database/models/user.model.js";
 import { AppError } from "../../utils/AppError.js";
 import { catchAsyncError } from "../../utils/catchAsyncError.js";
-import jwt from "jsonwebtoken";
-import bcrypt from "bcrypt";
 
 const signUp = catchAsyncError(async (req, res, next) => {
   // console.log(req.body.email);
@@ -72,4 +72,5 @@ const allowedTo = (...roles) => {
     next();
   });
 };
-export { signUp, signIn, protectedRoutes, allowedTo };
+export { allowedTo, protectedRoutes, signIn, signUp };
+
