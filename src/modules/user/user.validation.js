@@ -15,7 +15,6 @@ const updateUserValidation = Joi.object({
   name: Joi.string().trim(),
   password: Joi.string(),
   id: Joi.string().hex().length(24).required(),
-  password: Joi.string().min(6).required(),
   role: Joi.string().valid("admin", "user").default("user"),
   isActive: Joi.boolean().default(true),
   verified: Joi.boolean().default(false),

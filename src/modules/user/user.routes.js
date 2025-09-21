@@ -93,6 +93,8 @@ const userRouter = express.Router();
  *     summary: Thêm người dùng mới
  *     tags:
  *       - User
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -163,6 +165,8 @@ userRouter.post("/", protectedRoutes, allowedTo("admin"), validate(addUserValida
  *     summary: Lấy tất cả người dùng với filter, search, sort, pagination và field selection
  *     tags:
  *       - User
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: query
  *         name: page
@@ -334,6 +338,8 @@ userRouter.get("/profile", protectedRoutes, allowedTo("admin", "user"), User.get
  *     summary: Cập nhật thông tin user theo ID
  *     tags:
  *       - User
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -400,7 +406,7 @@ userRouter.get("/profile", protectedRoutes, allowedTo("admin", "user"), User.get
  *       500:
  *         description: Server error
  */
-userRouter.put("/:id", protectedRoutes, allowedTo("admin"), validate(updateUserValidation), User.updateUser);
+userRouter.put("/:id", protectedRoutes, allowedTo("admin", "user"), validate(updateUserValidation), User.updateUser);
 
 /**
  * @openapi
@@ -409,6 +415,8 @@ userRouter.put("/:id", protectedRoutes, allowedTo("admin"), validate(updateUserV
  *     summary: Thay đổi mật khẩu user theo ID
  *     tags:
  *       - User
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -462,9 +470,9 @@ userRouter.put("/:id", protectedRoutes, allowedTo("admin"), validate(updateUserV
  *       500:
  *         description: Server error
  */
-userRouter.patch("/:id/password", 
+userRouter.patch("/:id/password",
   protectedRoutes,
-  allowedTo("admin", "user"), 
+  allowedTo("admin", "user"),
   validate(changeUserPasswordValidation), User.changeUserPassword);
 
 /**
@@ -474,6 +482,8 @@ userRouter.patch("/:id/password",
  *     summary: Xóa user theo ID
  *     tags:
  *       - User
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
