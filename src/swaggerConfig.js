@@ -1,3 +1,4 @@
+import fs from "fs";
 import swaggerJsdoc from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
 
@@ -28,6 +29,9 @@ const options = {
 };
 
 const specs = swaggerJsdoc(options);
+
+// Xuất swagger.json ra file
+// fs.writeFileSync("./swagger.json", JSON.stringify(specs, null, 2));
 
 export function setupSwagger(app) {
     app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));
